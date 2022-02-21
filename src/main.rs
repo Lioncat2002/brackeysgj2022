@@ -60,7 +60,7 @@ impl Level {
         self.tilemap
             .draw_tiles("cloudsnprops", Rect::new(0.0, 0.0, 1024., 1024.), None);
         let position = self.world.actor_pos(self.player.collider);
-        
+
         draw_texture_ex(
             self.player.sprite,
             position.x,
