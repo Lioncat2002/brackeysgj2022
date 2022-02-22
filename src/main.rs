@@ -88,14 +88,14 @@ async fn main() {
     //Tilemap stuff
     let tileset = load_texture("assets/tileset.png").await.unwrap();
     tileset.set_filter(FilterMode::Nearest);
-    let tiledmap_json = load_string("assets/map.json").await.unwrap();
+    let tiledmap_json = load_string("assets/map1.json").await.unwrap();
     let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
     //Player stuff
-    let player = load_texture("assets/player.png").await.unwrap();
-    player.set_filter(FilterMode::Nearest);
+    let playerTex = load_texture("assets/player.png").await.unwrap();
+    playerTex.set_filter(FilterMode::Nearest);
 
     let mut static_colliders = vec![];
-    let mut world = World::new();
+    let mut world1 = World::new();
     for (_x, _y, _tile) in tilemap.tiles("Platforms", None) {
         if _tile.is_some() {
             static_colliders.push(Tile::Collider);
@@ -103,7 +103,7 @@ async fn main() {
             static_colliders.push(Tile::Empty);
         }
     }
-    world.add_static_tiled_layer(
+    world1.add_static_tiled_layer(
         static_colliders,
         tilemap.raw_tiled_map.tilewidth as f32 * 2.,
         tilemap.raw_tiled_map.tileheight as f32 * 2.,
@@ -111,20 +111,65 @@ async fn main() {
         1,
     );
     let player = Player {
-        collider: world.add_actor(Vec2::new(48., 48.), 32, 32),
-        sprite: player,
+        collider: world1.add_actor(Vec2::new(48., 48.), 32, 32),
+        sprite: playerTex,
         speed: Vec2::new(0., 0.),
     };
     let mut level1 = Level {
         tilemap: tilemap,
         player: player,
-        world: world,
+        world: world1,
     };
-
+    let tiledmap_json = load_string("assets/level2.json").await.unwrap();
+    let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
+   
+    let mut static_colliders = vec![];
+    let mut world2 = World::new();
+    for (_x, _y, _tile) in tilemap.tiles("Platforms", None) {
+        if _tile.is_some() {
+            static_colliders.push(Tile::Collider);
+        } else {
+            static_colliders.push(Tile::Empty);
+        }
+    }
+    world2.add_static_tiled_layer(
+        static_colliders,
+        tilemap.raw_tiled_map.tilewidth as f32 * 2.,
+        tilemap.raw_tiled_map.tileheight as f32 * 2.,
+        tilemap.raw_tiled_map.width as _,
+        1,
+    );
+    let player = Player {
+        collider: world2.add_actor(Vec2::new(48., 48.), 32, 32),
+        sprite: playerTex,
+        speed: Vec2::new(0., 0.),
+    };
+    let mut level2 = Level {
+        tilemap: tilemap,
+        player: player,
+        world: world2,
+    };
+    let mut levelover=false;
     loop {
         clear_background(WHITE);
-        level1.update();
-        level1.draw();
+        if is_key_pressed(KeyCode::E) {
+            if levelover {
+                levelover= false; 
+            }
+            else{
+                levelover=true;
+            }
+        }
+
+        if ! levelover{
+            level1.update();
+            level1.draw();
+        }
+        else{
+            level2.update();
+            level2.draw();
+        }
+        
         next_frame().await;
     }
 }
