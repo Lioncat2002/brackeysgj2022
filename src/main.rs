@@ -85,15 +85,16 @@ fn window_conf() -> Conf {
 }
 #[macroquad::main(window_conf)]
 async fn main() {
-    //Tilemap stuff
+    
+     //Player stuff
+    let playerTex = load_texture("assets/player.png").await.unwrap();
+    playerTex.set_filter(FilterMode::Nearest);
+    //1st level
     let tileset = load_texture("assets/tileset.png").await.unwrap();
     tileset.set_filter(FilterMode::Nearest);
     let tiledmap_json = load_string("assets/map1.json").await.unwrap();
     let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
-    //Player stuff
-    let playerTex = load_texture("assets/player.png").await.unwrap();
-    playerTex.set_filter(FilterMode::Nearest);
-
+   
     let mut static_colliders = vec![];
     let mut world1 = World::new();
     for (_x, _y, _tile) in tilemap.tiles("Platforms", None) {
@@ -122,7 +123,7 @@ async fn main() {
     };
     let tiledmap_json = load_string("assets/level2.json").await.unwrap();
     let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
-   
+   //2nd level
     let mut static_colliders = vec![];
     let mut world2 = World::new();
     for (_x, _y, _tile) in tilemap.tiles("Platforms", None) {
@@ -139,7 +140,7 @@ async fn main() {
         tilemap.raw_tiled_map.width as _,
         1,
     );
-    let player = Player {
+     let player = Player {
         collider: world2.add_actor(Vec2::new(48., 48.), 32, 32),
         sprite: playerTex,
         speed: Vec2::new(0., 0.),
@@ -149,16 +150,12 @@ async fn main() {
         player: player,
         world: world2,
     };
+
     let mut levelover=false;
     loop {
         clear_background(WHITE);
         if is_key_pressed(KeyCode::E) {
-            if levelover {
-                levelover= false; 
-            }
-            else{
-                levelover=true;
-            }
+            levelover=!levelover;
         }
 
         if ! levelover{
