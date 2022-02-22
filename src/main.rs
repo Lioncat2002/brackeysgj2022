@@ -5,6 +5,13 @@ use macroquad_platformer::*;
 use macroquad_tiled as tiled;
 use tiled::Map;
 
+enum CurrentLevel {
+    Menu,
+    Level1,
+    Level2,
+    Level3,
+}
+#[derive(Clone, Copy)]
 struct Player {
     sprite: Texture2D,
     collider: Actor,
@@ -76,7 +83,7 @@ impl Level {
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Window Conf".to_owned(),
+        window_title: "Brackeys Game Jam 2022".to_owned(),
         fullscreen: false,
         window_height: 512,
         window_width: 1024,
@@ -85,16 +92,16 @@ fn window_conf() -> Conf {
 }
 #[macroquad::main(window_conf)]
 async fn main() {
-    
-     //Player stuff
+    //Player stuff
     let playerTex = load_texture("assets/player.png").await.unwrap();
     playerTex.set_filter(FilterMode::Nearest);
+    //Levels
     //1st level
     let tileset = load_texture("assets/tileset.png").await.unwrap();
     tileset.set_filter(FilterMode::Nearest);
     let tiledmap_json = load_string("assets/map1.json").await.unwrap();
     let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
-   
+
     let mut static_colliders = vec![];
     let mut world1 = World::new();
     for (_x, _y, _tile) in tilemap.tiles("Platforms", None) {
@@ -111,7 +118,7 @@ async fn main() {
         tilemap.raw_tiled_map.width as _,
         1,
     );
-    let player = Player {
+    let mut player = Player {
         collider: world1.add_actor(Vec2::new(48., 48.), 32, 32),
         sprite: playerTex,
         speed: Vec2::new(0., 0.),
@@ -121,9 +128,10 @@ async fn main() {
         player: player,
         world: world1,
     };
+    //2nd level
     let tiledmap_json = load_string("assets/level2.json").await.unwrap();
     let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
-   //2nd level
+
     let mut static_colliders = vec![];
     let mut world2 = World::new();
     for (_x, _y, _tile) in tilemap.tiles("Platforms", None) {
@@ -140,33 +148,40 @@ async fn main() {
         tilemap.raw_tiled_map.width as _,
         1,
     );
-     let player = Player {
-        collider: world2.add_actor(Vec2::new(48., 48.), 32, 32),
-        sprite: playerTex,
-        speed: Vec2::new(0., 0.),
-    };
+    //finally understood the need of that #[derive(Clone,Copy)]
+    player.collider=world2.add_actor(Vec2::new(48., 48.), 32, 32);
+    //let player = Player {
+    //    collider: world2.add_actor(Vec2::new(48., 48.), 32, 32),
+    //    sprite: playerTex,
+    //    speed: Vec2::new(0., 0.),
+    //};
     let mut level2 = Level {
         tilemap: tilemap,
         player: player,
         world: world2,
     };
-
-    let mut levelover=false;
+    //Level selection n stuff
+    let mut current_level = CurrentLevel::Level1;
     loop {
         clear_background(WHITE);
+
         if is_key_pressed(KeyCode::E) {
-            levelover=!levelover;
+            current_level = CurrentLevel::Level2;
         }
 
-        if ! levelover{
-            level1.update();
-            level1.draw();
+        match current_level {
+            CurrentLevel::Menu => todo!(),
+            CurrentLevel::Level1 => {
+                level1.update();
+                level1.draw();
+            }
+            CurrentLevel::Level2 => {
+                level2.update();
+                level2.draw();
+            }
+            CurrentLevel::Level3 => todo!(),
         }
-        else{
-            level2.update();
-            level2.draw();
-        }
-        
+
         next_frame().await;
     }
 }
