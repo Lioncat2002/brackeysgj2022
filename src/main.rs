@@ -5,11 +5,13 @@ use macroquad_platformer::*;
 use macroquad_tiled as tiled;
 use tiled::Map;
 
+#[derive(Clone, Copy)]
 enum CurrentLevel {
     Menu,
     Level1,
     Level2,
     Level3,
+    End,
 }
 #[derive(Clone, Copy)]
 struct Player {
@@ -17,17 +19,24 @@ struct Player {
     collider: Actor,
     speed: Vec2,
 }
-
+#[derive(Clone, Copy)]
+struct Enemy {
+    sprite: Texture2D,
+    collider: Actor,
+}
 struct Level {
     tilemap: Map,
     player: Player,
+    enemies: Vec<Enemy>,
     world: World,
+    game_endpoint: Rect,
+    current_level: CurrentLevel,
+    next_level: CurrentLevel,
 }
 
 impl Level {
-    fn update(&mut self) {
+    fn update(&mut self) -> CurrentLevel {
         //player movement
-
         if is_key_down(KeyCode::A) {
             self.player.speed.x = -200.;
         } else if is_key_down(KeyCode::D) {
@@ -37,6 +46,7 @@ impl Level {
         }
 
         let pos = self.world.actor_pos(self.player.collider);
+
         let on_ground = self
             .world
             .collide_check(self.player.collider, pos + vec2(0., 1.));
@@ -57,6 +67,24 @@ impl Level {
             .move_h(self.player.collider, self.player.speed.x * get_frame_time());
         self.world
             .move_v(self.player.collider, self.player.speed.y * get_frame_time());
+
+        //Collision checking and stuff
+        let player_rect = Rect::new(pos.x, pos.y, 32., 32.);
+        for enemy in &self.enemies {
+            let enemy_pos = self.world.actor_pos(enemy.collider);
+            let enemy_rect = Rect::new(enemy_pos.x, enemy_pos.y, 32., 32.);
+            if player_rect.intersect(enemy_rect).is_some() {
+                println!("Game Over!");
+            }
+        }
+
+        //Check for game end
+        if player_rect.intersect(self.game_endpoint).is_some() {
+            println!("You Win!");
+            self.next_level
+        } else {
+            self.current_level
+        }
     }
 
     fn draw(&self) {
@@ -78,6 +106,19 @@ impl Level {
                 ..Default::default()
             },
         );
+        for enemy in &self.enemies {
+            let enemy_pos = self.world.actor_pos(enemy.collider);
+            draw_texture_ex(
+                enemy.sprite,
+                enemy_pos.x,
+                enemy_pos.y,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(Vec2::new(32., 32.)),
+                    ..Default::default()
+                },
+            );
+        }
     }
 }
 
@@ -93,14 +134,18 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     //Player stuff
-    let playerTex = load_texture("assets/player.png").await.unwrap();
-    playerTex.set_filter(FilterMode::Nearest);
+    let player_tex = load_texture("assets/player.png").await.unwrap();
+    player_tex.set_filter(FilterMode::Nearest);
+
+    //Enemy stuff
+    let enemy_tex = load_texture("assets/enemy.png").await.unwrap();
+    enemy_tex.set_filter(FilterMode::Nearest);
     //Levels
     //1st level
-    let tileset = load_texture("assets/tileset.png").await.unwrap();
+    let mut tileset = load_texture("assets/tileset.png").await.unwrap();
     tileset.set_filter(FilterMode::Nearest);
-    let tiledmap_json = load_string("assets/map1.json").await.unwrap();
-    let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
+    let mut tiledmap_json = load_string("assets/level1.json").await.unwrap();
+    let mut tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
 
     let mut static_colliders = vec![];
     let mut world1 = World::new();
@@ -118,19 +163,31 @@ async fn main() {
         tilemap.raw_tiled_map.width as _,
         1,
     );
+
     let mut player = Player {
         collider: world1.add_actor(Vec2::new(48., 48.), 32, 32),
-        sprite: playerTex,
+        sprite: player_tex,
         speed: Vec2::new(0., 0.),
     };
+
+    let mut enemy1 = Enemy {
+        collider: world1.add_actor(Vec2::new(200., 130.), 32, 32),
+        sprite: enemy_tex,
+    };
+
     let mut level1 = Level {
         tilemap: tilemap,
         player: player,
+        enemies: [enemy1].to_vec(),
         world: world1,
+        game_endpoint: Rect::new(32. * 30., 4. * 32., 32., 32.),
+        current_level: CurrentLevel::Level1,
+        next_level: CurrentLevel::Level2,
     };
+    
     //2nd level
-    let tiledmap_json = load_string("assets/level2.json").await.unwrap();
-    let tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
+     tiledmap_json = load_string("assets/level2.json").await.unwrap();
+    tilemap = tiled::load_map(&tiledmap_json, &[("tileset.png", tileset)], &[]).unwrap();
 
     let mut static_colliders = vec![];
     let mut world2 = World::new();
@@ -149,37 +206,36 @@ async fn main() {
         1,
     );
     //finally understood the need of that #[derive(Clone,Copy)]
-    player.collider=world2.add_actor(Vec2::new(48., 48.), 32, 32);
-    //let player = Player {
-    //    collider: world2.add_actor(Vec2::new(48., 48.), 32, 32),
-    //    sprite: playerTex,
-    //    speed: Vec2::new(0., 0.),
-    //};
+    player.collider = world2.add_actor(Vec2::new(48., 48.), 32, 32);
+
+    enemy1.collider = world2.add_actor(Vec2::new(290., 195.), 32, 32);
+
     let mut level2 = Level {
         tilemap: tilemap,
         player: player,
+        enemies: [enemy1].to_vec(),
         world: world2,
+        game_endpoint: Rect::new(32. * 30., 13. * 32., 32., 32.),
+        current_level: CurrentLevel::Level2,
+        next_level: CurrentLevel::Level1,
     };
     //Level selection n stuff
     let mut current_level = CurrentLevel::Level1;
     loop {
         clear_background(WHITE);
 
-        if is_key_pressed(KeyCode::E) {
-            current_level = CurrentLevel::Level2;
-        }
-
         match current_level {
             CurrentLevel::Menu => todo!(),
             CurrentLevel::Level1 => {
-                level1.update();
+                current_level = level1.update();
                 level1.draw();
             }
             CurrentLevel::Level2 => {
-                level2.update();
+                current_level = level2.update();
                 level2.draw();
             }
             CurrentLevel::Level3 => todo!(),
+            CurrentLevel::End=>todo!(),
         }
 
         next_frame().await;
