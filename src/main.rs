@@ -1,6 +1,9 @@
 use std::vec;
+use macroquad::ui::widgets::Window;
+use macroquad::ui::root_ui;
+use macroquad::ui::widgets::Group;
+use macroquad::{prelude::*, hash};
 
-use macroquad::prelude::*;
 use macroquad_platformer::*;
 use macroquad_tiled as tiled;
 use tiled::Map;
@@ -217,15 +220,31 @@ async fn main() {
         world: world2,
         game_endpoint: Rect::new(32. * 30., 13. * 32., 32., 32.),
         current_level: CurrentLevel::Level2,
-        next_level: CurrentLevel::Level1,
+        next_level: CurrentLevel::End,
     };
     //Level selection n stuff
-    let mut current_level = CurrentLevel::Level1;
+    let mut current_level = CurrentLevel::Menu;
+    
     loop {
         clear_background(WHITE);
-
+    
         match current_level {
-            CurrentLevel::Menu => todo!(),
+            CurrentLevel::Menu => {
+                Window::new(hash!(), vec2(400., 100.), vec2(320., 320.))
+                .label("In a Coma")
+                .titlebar(true)
+                .ui(&mut *root_ui(), |ui| {
+                    
+                        Group::new(hash!("In a Coma"), Vec2::new(300., 80.)).ui(ui, |ui| {
+                            ui.label(Vec2::new(140., 10.), "Pussy");
+        
+                            if ui.button(Vec2::new(140.,40.), "Start") {
+                                current_level=CurrentLevel::Level1;
+                            }
+                        });
+                    
+                });
+            },
             CurrentLevel::Level1 => {
                 current_level = level1.update();
                 level1.draw();
@@ -235,7 +254,18 @@ async fn main() {
                 level2.draw();
             }
             CurrentLevel::Level3 => todo!(),
-            CurrentLevel::End=>todo!(),
+            CurrentLevel::End=>{
+                Window::new(hash!(), vec2(400., 100.), vec2(320., 320.))
+                .label("You have done it!")
+                .titlebar(true)
+                .ui(&mut *root_ui(), |ui| {
+                    
+                        Group::new(hash!("You have done it!"), Vec2::new(300., 80.)).ui(ui, |ui| {
+                            ui.label(Vec2::new(140., 10.), "Look! he woke up!");
+                        });
+                    
+                });
+            },
         }
 
         next_frame().await;
