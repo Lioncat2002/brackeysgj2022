@@ -236,7 +236,7 @@ async fn main() {
                 .ui(&mut *root_ui(), |ui| {
                     
                         Group::new(hash!("In a Coma"), Vec2::new(300., 80.)).ui(ui, |ui| {
-                            ui.label(Vec2::new(140., 10.), "Pussy");
+                            ui.label(Vec2::new(140., 10.), "New Game");
         
                             if ui.button(Vec2::new(140.,40.), "Start") {
                                 current_level=CurrentLevel::Level1;
